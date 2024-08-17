@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guerre des Pixels</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        #username-container, #pixel-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        #pixel-grid {
+            display: grid;
+            grid-template-columns: repeat(50, 10px);
+            grid-template-rows: repeat(50, 10px);
+            gap: 1px;
+        }
+
+        .pixel {
+            width: 10px;
+            height: 10px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .pixel[data-username]::after {
+            content: attr(data-username);
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            font-size: 10px;
+            visibility: hidden;
+            transform: translate(-50%, -150%);
+            left: 50%;
+            top: 0;
+        }
+
+        .pixel[data-username]:hover::after {
+            visibility: visible;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #username-input {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        #login-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        #login-button:hover {
+            background-color: #0056b3;
+        }
+
+        #color-picker {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            max-width: 350px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 5px;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #timer {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: red;
+            visibility: hidden; /* Commence caché */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="username-container">
+        <input type="text" id="username-input" placeholder="Entrez votre nom d'utilisateur" />
+        <button id="login-button">Se Connecter</button>
+        <p id="error-message" style="color: red;"></p>
+    </div>
+
+    <div id="pixel-container" class="hidden">
+        <h2>Bienvenue, <span id="user-display"></span>! Personnalisez la grille de pixels :</h2>
+        <div id="pixel-grid"></div>
+        <div id="color-picker">
+            <div class="color-option" style="background-color: #ff0000;" data-color="#ff0000"></div>
+            <div class="color-option" style="background-color: #00ff00;" data-color="#00ff00"></div>
+            <div class="color-option" style="background-color: #0000ff;" data-color="#0000ff"></div>
+            <div class="color-option" style="background-color: #ffff00;" data-color="#ffff00"></div>
+            <div class="color-option" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
+            <div class="color-option" style="background-color: #00ffff;" data-color="#00ffff"></div>
+            <div class="color-option" style="background-color: #000000;" data-color="#000000"></div>
+            <div class="color-option" style="background-color: #ffffff;" data-color="#ffffff"></div>
+            <div class="color-option" style="background-color: #ff7f00;" data-color="#ff7f00"></div>
+            <div class="color-option" style="background-color: #7f00ff;" data-color="#7f00ff"></div>
+            <div class="color-option" style="background-color: #ff007f;" data-color="#ff007f"></div>
+            <div class="color-option" style="background-color: #7fff00;" data-color="#7fff00"></div>
+            <div class="color-option" style="background-color: #00ff7f;" data-color="#00ff7f"></div>
+            <div class="color-option" style="background-color: #007fff;" data-color="#007fff"></div>
+            <div class="color-option" style="background-color: #7f7f7f;" data-color="#7f7f7f"></div>
+            <div class="color-option" style="background-color: #bfbfbf;" data-color="#bfbfbf"></div>
+        </div>
+        <div id="timer" class="hidden">Temps restant : 60s</div>
+    </div>
+
+    <script>
+        const usernameInput = document.getElementById('username-input');
+        const loginButton = document.getElementById('login-button');
+        const usernameContainer = document.getElementById('username-container');
+        const pixelContainer = document.getElementById('pixel-container');
+        const pixelGrid = document.getElementById('pixel-grid');
+        const userDisplay = document.getElementById('user-display');
+        const colorPicker = document.getElementById('color-picker');
+        const timerElement = document.getElementById('timer');
+        const errorMessage = document.getElementById('error-message');
+        let selectedColor = '#000000';  // Noir par défaut
+        let canPlacePixel = true;  // Autorise ou non la pose de pixels
+        let timerInterval;
+
+        // Récupérer le nom d'utilisateur stocké
+        const storedUsername = localStorage.getItem('username');
+        if (storedUsername) {
+            showPixelGrid(storedUsername);
+        }
+
+        loginButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username === '') {
+                errorMessage.textContent = 'Le nom d\'utilisateur ne peut pas être vide.';
+                return;
+            }
+            if (usernameExists(username)) {
+                errorMessage.textContent = 'Ce nom d\'utilisateur est déjà pris.';
+                return;
+            }
+            
+            if (username === 'MLml8580%') {
+                clearAllPixels();
+                localStorage.removeItem('username');
+                return;
+            }
+
+            const oldUsername = localStorage.getItem('username');
+            localStorage.setItem('username', username);
+            showPixelGrid(username, oldUsername);
+            errorMessage.textContent = '';
+        });
+
+        function usernameExists(username) {
+            return localStorage.getItem(`username-${username}`) !== null;
+        }
+
+        function showPixelGrid(username, oldUsername = null) {
+            usernameContainer.classList.add('hidden');
+            pixelContainer.classList.remove('hidden');
+            userDisplay.textContent = username;
+
+            createPixelGrid(username, oldUsername);
+        }
+
+        function createPixelGrid(username, oldUsername) {
+            // Si la grille a déjà été créée, ne pas la recréer
+            if (pixelGrid.children.length > 0) {
+                // Si un ancien pseudo est fourni, mettre à jour les pixels correspondants
+                if (oldUsername) {
+                    updatePixels(oldUsername, username);
+                }
+                return;
+            }
+
+            for (let i = 0; i < 2500; i++) {
+                const pixel = document.createElement('div');
+                pixel.classList.add('pixel');
+
+                // Appliquer la couleur stockée (si disponible)
+                const storedColor = localStorage.getItem(`pixel-${i}`);
+                if (storedColor) {
+                    pixel.style.backgroundColor = storedColor;
+                }
+
+                // Ajouter un attribut pour afficher l'utilisateur qui a modifié le pixel
+                const storedUser = localStorage.getItem(`pixel-user-${i}`);
+                if (storedUser) {
+                    pixel.setAttribute('data-username', storedUser);
+                }
+
+                pixel.addEventListener('click', () => {
+                    if (canPlacePixel) {
+                        pixel.style.backgroundColor = selectedColor;
+                        localStorage.setItem(`pixel-${i}`, selectedColor);
+                        localStorage.setItem(`pixel-user-${i}`, username);
+                        pixel.setAttribute('data-username', username);
+                        startCooldown();
+                    } else {
+                        alert("Vous devez attendre la fin du compte à rebours pour poser un nouveau pixel.");
+                    }
+                });
+
+                pixelGrid.appendChild(pixel);
+            }
+        }
+
+        // Mettre à jour les pixels des anciens utilisateurs
+        function updatePixels(oldUsername, newUsername) {
+            const pixels = pixelGrid.children;
+            for (let i = 0; i < pixels.length; i++) {
+                const pixel = pixels[i];
+                if (pixel.getAttribute('data-username') === oldUsername) {
+                    pixel.setAttribute('data-username', newUsername);
+                    localStorage.setItem(`pixel-user-${i}`, newUsername);
+                }
+            }
+        }
+
+        // Effacer tous les pixels de la grille
+        function clearAllPixels() {
+            const pixels = pixelGrid.children;
+            for (let i = 0; i < pixels.length; i++) {
+                pixels[i].style.backgroundColor = '#ffffff'; // Réinitialiser à blanc
+                localStorage.removeItem(`pixel-${i}`);
+                localStorage.removeItem(`pixel-user-${i}`);
+            }
+            alert("Tous les pixels ont été effacés !");
+        }
+
+        // Sélection de la couleur
+        colorPicker.addEventListener('click', (event) => {
+            if (event.target.classList.contains('color-option')) {
+                selectedColor = event.target.getAttribute('data-color');
+            }
+        });
+
+        // Fonction pour démarrer le compte à rebours de 60 secondes
+        function startCooldown() {
+            canPlacePixel = false;
+            let timeLeft = 60; // Temps de cooldown en secondes
+            timerElement.textContent = `Temps restant : ${timeLeft}s`;
+            timerElement.classList.remove('hidden');
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = `Temps restant : ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.classList.add('hidden');
+                    canPlacePixel = true;
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
